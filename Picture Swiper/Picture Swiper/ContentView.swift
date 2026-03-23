@@ -20,6 +20,7 @@ struct ContentView: View {
                 let asset = manager.assets[index]
 
                 AssetImageView(asset: asset)
+                    .id(asset.localIdentifier)
                     .offset(x: offset.width)
                     .rotationEffect(.degrees(offset.width / 20.0)) // optional but nice
                     .gesture(
@@ -42,6 +43,11 @@ struct ContentView: View {
                 }
             }
         }
+        // 👇 NEW BUTTON
+            Button("Finish & Delete (\(manager.toDelete.count))") {
+                manager.deleteMarked()
+            }
+            .padding()
         .onAppear {
             manager.requestPermission()
         }
@@ -77,3 +83,4 @@ struct ContentView: View {
         offset = .zero
     }
 }
+
