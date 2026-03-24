@@ -13,43 +13,56 @@ struct ContentView: View {
     @StateObject var manager = PhotoManager()
     @State private var index = 0
     @State private var offset: CGSize = .zero
+    @State private var showGrid = true  // true = grid, false = swipe
+    @State private var startIndex = 0   // index selected in grid
 
     var body: some View {
         VStack {
-            if index < manager.assets.count {
-                let asset = manager.assets[index]
-
-                AssetImageView(asset: asset)
-                    .id(asset.localIdentifier)
-                    .offset(x: offset.width)
-                    .rotationEffect(.degrees(offset.width / 20.0)) // optional but nice
-                    .gesture(
-                        DragGesture()
-                            .onChanged { gesture in
-                                offset = gesture.translation
-                            }
-                            .onEnded { gesture in
-                                handleSwipe(gesture: gesture, asset: asset)
-                            }
-                    )
-                    .animation(.spring(), value: offset)
-
+            if showGrid {
+                PhotoGridView(manager: manager, startIndex: $startIndex)
+                    .onChange(of: startIndex) { _, newValue in
+                        index = newValue
+                        showGrid = false
+                    }
             } else {
-                VStack {
-                    Text("Done")
-                    Button("Delete selected") {
+                // Your existing swipe UI
+                if index < manager.assets.count {
+                    let asset = manager.assets[index]
+
+                    AssetImageView(asset: asset)
+                        .id(asset.localIdentifier)
+                        .offset(x: offset.width)
+                        .rotationEffect(.degrees(offset.width / 20.0))
+                        .gesture(
+                            DragGesture()
+                                .onChanged { gesture in
+                                    offset = gesture.translation
+                                }
+                                .onEnded { gesture in
+                                    handleSwipe(gesture: gesture, asset: asset)
+                                }
+                        )
+                        .animation(.spring(), value: offset)
+
+                    // Finish button for deletion
+                    Button("Finish & Delete (\(manager.toDelete.count))") {
                         manager.deleteMarked()
+                    }
+                    .padding()
+
+                } else {
+                    VStack {
+                        Text("Done")
+                        Button("Delete selected") {
+                            manager.deleteMarked()
+                        }
                     }
                 }
             }
         }
-        // 👇 NEW BUTTON
-            Button("Finish & Delete (\(manager.toDelete.count))") {
-                manager.deleteMarked()
-            }
-            .padding()
         .onAppear {
             manager.requestPermission()
+            index = UserDefaults.standard.integer(forKey: "lastPhotoIndex")
         }
     }
 
@@ -81,6 +94,9 @@ struct ContentView: View {
     func next() {
         index += 1
         offset = .zero
+
+        // Save the current index
+        UserDefaults.standard.set(index, forKey: "lastPhotoIndex")
     }
 }
 
